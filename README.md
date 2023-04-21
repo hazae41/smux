@@ -15,6 +15,9 @@ npm i @hazae41/smux
 - Zero-copy reading and writing
 - Works in the browser
 
+### [Upcoming features](https://github.com/sponsors/hazae41)
+- Multiplexing
+
 ## Usage
 
 ```typescript
