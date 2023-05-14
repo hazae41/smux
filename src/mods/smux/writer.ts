@@ -1,12 +1,21 @@
 import { Empty, Writable } from "@hazae41/binary";
 import { SuperTransformStream } from "@hazae41/cascade";
-import { AsyncEventTarget, CloseAndErrorEvents } from "@hazae41/plume";
+import { StreamEvents, SuperEventTarget } from "@hazae41/plume";
+import { Err, Ok, Result } from "@hazae41/result";
 import { SmuxSegment, SmuxUpdate } from "./segment.js";
 import { SecretSmuxDuplex } from "./stream.js";
 
+export class PeerWindowOverflow extends Error {
+  readonly #class = PeerWindowOverflow
+
+  constructor() {
+    super(`Peer window reached`)
+  }
+}
+
 export class SecretSmuxWriter {
 
-  readonly events = new AsyncEventTarget<CloseAndErrorEvents>()
+  readonly events = new SuperEventTarget<StreamEvents>()
 
   readonly stream: SuperTransformStream<Writable, Writable>
 
@@ -19,32 +28,55 @@ export class SecretSmuxWriter {
     })
   }
 
-  async #onStart() {
+  async #onStart(): Promise<Result<void, never>> {
     await this.#sendSYN()
     await this.#sendUPD()
+
+    return Ok.void()
   }
 
   async #sendSYN() {
-    const segment = new SmuxSegment(2, SmuxSegment.commands.syn, this.parent.streamID, new Empty())
-    this.stream.enqueue(segment.prepare())
+    const version = 2
+    const command = SmuxSegment.commands.syn
+    const stream = this.parent.streamID
+    const fragment = new Empty()
+
+    const segment = SmuxSegment.tryNew({ version, command, stream, fragment }).inner
+
+    this.stream.enqueue(segment)
   }
 
   async #sendUPD() {
-    const update = new SmuxUpdate(0, this.parent.selfWindow)
-    const segment = new SmuxSegment(2, SmuxSegment.commands.upd, this.parent.streamID, update)
-    this.stream.enqueue(segment.prepare())
+    const version = 2
+    const command = SmuxSegment.commands.upd
+    const stream = this.parent.streamID
+    const fragment = new SmuxUpdate(0, this.parent.selfWindow)
+
+    const segment = SmuxSegment.tryNew({ version, command, stream, fragment }).inner
+
+    this.stream.enqueue(segment)
   }
 
-  async #onWrite(chunk: Writable) {
+  async #onWrite<T extends Writable>(fragment: T): Promise<Result<void, PeerWindowOverflow | Writable.SizeError<T>>> {
     const inflight = this.parent.selfWrite - this.parent.peerConsumed
 
     if (inflight >= this.parent.peerWindow)
-      throw new Error(`Peer window reached`)
+      return new Err(new PeerWindowOverflow())
 
-    const segment = new SmuxSegment(2, SmuxSegment.commands.psh, this.parent.streamID, chunk)
-    this.stream.enqueue(segment.prepare())
+    const version = 2
+    const command = SmuxSegment.commands.psh
+    const stream = this.parent.streamID
 
-    this.parent.selfWrite += chunk.size()
+    const segment = SmuxSegment.tryNew({ version, command, stream, fragment })
+
+    if (segment.isErr())
+      return segment
+
+    this.stream.enqueue(segment.inner)
+
+    this.parent.selfWrite += segment.inner.fragmentSize
+
+    return Ok.void()
   }
 
 }

@@ -12,9 +12,14 @@ console.log(relative(directory, pathname.replace(".mjs", ".ts")))
 globalThis.crypto = webcrypto as any
 
 test("kcp segment", async ({ test }) => {
-  const frame = new SmuxSegment(2, SmuxSegment.commands.psh, 12345, Opaque.random(130))
-  const bytes = Writable.toBytes(frame.prepare())
-  const frame2 = Readable.fromBytes(SmuxSegment, bytes)
+  const version = 2
+  const command = SmuxSegment.commands.psh
+  const stream = 12345
+  const fragment = Opaque.random(130)
 
-  assert(Bytes.equals(frame.fragment.bytes, frame2.fragment.bytes))
+  const segment = SmuxSegment.tryNew({ version, command, stream, fragment }).unwrap()
+  const bytes = Writable.tryWriteToBytes(segment).unwrap()
+  const frame2 = Readable.tryReadFromBytes(SmuxSegment, bytes).unwrap()
+
+  assert(Bytes.equals2(segment.fragment.bytes, frame2.fragment.bytes))
 })

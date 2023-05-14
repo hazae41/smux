@@ -1,4 +1,6 @@
-import { Cursor, Opaque, Readable, UnsafeOpaque, Writable } from "@hazae41/binary"
+import { Opaque, Writable } from "@hazae41/binary"
+import { Cursor, CursorReadLengthOverflowError, CursorReadUnknownError, CursorWriteUnknownError } from "@hazae41/cursor"
+import { Ok, Result } from "@hazae41/result"
 
 export class SmuxUpdate {
 
@@ -7,25 +9,31 @@ export class SmuxUpdate {
     readonly window: number
   ) { }
 
-  size() {
-    return 4 + 4
+  trySize(): Result<number, never> {
+    return new Ok(4 + 4)
   }
 
-  write(cursor: Cursor) {
-    cursor.writeUint32(this.consumed, true)
-    cursor.writeUint32(this.window, true)
+  tryWrite(cursor: Cursor): Result<void, CursorWriteUnknownError> {
+    return Result.unthrowSync(t => {
+      cursor.tryWriteUint32(this.consumed, true).throw(t)
+      cursor.tryWriteUint32(this.window, true).throw(t)
+
+      return Ok.void()
+    })
   }
 
-  static read(cursor: Cursor) {
-    const consumed = cursor.readUint32(true)
-    const window = cursor.readUint32(true)
+  static tryRead(cursor: Cursor): Result<SmuxUpdate, CursorReadUnknownError> {
+    return Result.unthrowSync(t => {
+      const consumed = cursor.tryReadUint32(true).throw(t)
+      const window = cursor.tryReadUint32(true).throw(t)
 
-    return new this(consumed, window)
+      return new Ok(new SmuxUpdate(consumed, window))
+    })
   }
 
 }
 
-export class SmuxSegment<T extends Writable> {
+export class SmuxSegment<Fragment extends Writable> {
   readonly #class = SmuxSegment
 
   static readonly versions = {
@@ -41,67 +49,63 @@ export class SmuxSegment<T extends Writable> {
     upd: 4
   } as const
 
-  constructor(
+  private constructor(
     readonly version: number,
     readonly command: number,
     readonly stream: number,
-    readonly fragment: T
+    readonly fragment: Fragment,
+    readonly fragmentSize: number
   ) { }
 
-  #data?: {
-    size: number
+  static tryNew<Fragment extends Writable>(params: {
+    version: number,
+    command: number,
+    stream: number,
+    fragment: Fragment
+  }): Result<SmuxSegment<Fragment>, Writable.SizeError<Fragment>> {
+    const { version, command, stream, fragment } = params
+
+    const fragmentSize = fragment.trySize()
+
+    if (fragmentSize.isErr())
+      return fragmentSize
+
+    return new Ok(new SmuxSegment(version, command, stream, fragment, fragmentSize.inner))
   }
 
-  prepare() {
-    const size = this.fragment.size()
-    this.#data = { size }
-    return this
-  }
-
-  size() {
-    if (!this.#data)
-      throw new Error(`Unprepared ${this.#class.name}`)
-    const { size } = this.#data
-
-    return 0
+  trySize(): Result<number, never> {
+    return new Ok(0
       + 1
       + 1
       + 2
       + 4
-      + size
+      + this.fragmentSize)
   }
 
-  write(cursor: Cursor) {
-    if (!this.#data)
-      throw new Error(`Unprepared ${this.#class.name}`)
-    const { size } = this.#data
+  tryWrite(cursor: Cursor): Result<void, CursorWriteUnknownError | Writable.WriteError<Fragment>> {
+    return Result.unthrowSync(t => {
+      cursor.tryWriteUint8(this.version).throw(t)
+      cursor.tryWriteUint8(this.command).throw(t)
+      cursor.tryWriteUint16(this.fragmentSize, true).throw(t)
+      cursor.tryWriteUint32(this.stream, true).throw(t)
 
-    cursor.writeUint8(this.version)
-    cursor.writeUint8(this.command)
-    cursor.writeUint16(size, true)
-    cursor.writeUint32(this.stream, true)
-    this.fragment.write(cursor)
+      this.fragment.tryWrite(cursor).throw(t)
+
+      return Ok.void()
+    })
   }
 
-  static read(cursor: Cursor) {
-    const version = cursor.readUint8()
-    const command = cursor.readUint8()
-    const length = cursor.readUint16(true)
-    const stream = cursor.readUint32(true)
-    const bytes = cursor.read(length)
+  static tryRead(cursor: Cursor): Result<SmuxSegment<Opaque>, CursorReadUnknownError | CursorReadLengthOverflowError> {
+    return Result.unthrowSync(t => {
+      const version = cursor.tryReadUint8().throw(t)
+      const command = cursor.tryReadUint8().throw(t)
+      const length = cursor.tryReadUint16(true).throw(t)
+      const stream = cursor.tryReadUint32(true).throw(t)
+      const bytes = cursor.tryRead(length).throw(t)
 
-    const opaque = Readable.fromBytes(UnsafeOpaque, bytes)
+      const fragment = new Opaque(bytes)
 
-    return new this<Opaque>(version, command, stream, opaque)
-  }
-
-  static tryRead(cursor: Cursor) {
-    const offset = cursor.offset
-
-    try {
-      return this.read(cursor)
-    } catch (e: unknown) {
-      cursor.offset = offset
-    }
+      return SmuxSegment.tryNew({ version, command, stream, fragment })
+    })
   }
 }

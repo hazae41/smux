@@ -1,4 +1,6 @@
-import { Cursor, Opaque, Writable } from "@hazae41/binary"
+import { Opaque, Writable } from "@hazae41/binary"
+import { Bytes } from "@hazae41/bytes"
+import { Cursor } from "@hazae41/cursor"
 import { SecretSmuxReader } from "./reader.js"
 import { SecretSmuxWriter } from "./writer.js"
 
@@ -38,7 +40,7 @@ export class SecretSmuxDuplex {
   readonly readable: ReadableStream<Opaque>
   readonly writable: WritableStream<Writable>
 
-  readonly buffer = Cursor.allocUnsafe(65535)
+  readonly buffer: Cursor<Bytes<65_535>> = Cursor.allocUnsafe(65_535)
 
   readonly streamID = 3
 
@@ -74,8 +76,7 @@ export class SecretSmuxDuplex {
 
     this.reader.stream.closed = {}
 
-    const closeEvent = new CloseEvent("close", {})
-    await this.reader.events.dispatchEvent(closeEvent, "close")
+    await this.reader.events.tryEmit("close", undefined).then(r => r.unwrap())
   }
 
   async #onReadError(reason?: unknown) {
@@ -84,9 +85,7 @@ export class SecretSmuxDuplex {
     this.reader.stream.closed = { reason }
     this.writer.stream.error(reason)
 
-    const error = new Error(`Errored`, { cause: reason })
-    const errorEvent = new ErrorEvent("error", { error })
-    await this.reader.events.dispatchEvent(errorEvent, "error")
+    await this.reader.events.tryEmit("error", reason).then(r => r.unwrap())
   }
 
   async #onWriteClose() {
@@ -94,8 +93,7 @@ export class SecretSmuxDuplex {
 
     this.writer.stream.closed = {}
 
-    const closeEvent = new CloseEvent("close", {})
-    await this.writer.events.dispatchEvent(closeEvent, "close")
+    await this.writer.events.tryEmit("close", undefined).then(r => r.unwrap())
   }
 
   async #onWriteError(reason?: unknown) {
@@ -104,9 +102,7 @@ export class SecretSmuxDuplex {
     this.writer.stream.closed = { reason }
     this.reader.stream.error(reason)
 
-    const error = new Error(`Errored`, { cause: reason })
-    const errorEvent = new ErrorEvent("error", { error })
-    await this.writer.events.dispatchEvent(errorEvent, "error")
+    await this.writer.events.tryEmit("error", reason).then(r => r.unwrap())
   }
 
 }
