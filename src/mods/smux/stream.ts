@@ -1,5 +1,6 @@
 import { Opaque, Writable } from "@hazae41/binary"
 import { Bytes } from "@hazae41/bytes"
+import { Cascade } from "@hazae41/cascade"
 import { Cursor } from "@hazae41/cursor"
 import { SecretSmuxReader } from "./reader.js"
 import { SecretSmuxWriter } from "./writer.js"
@@ -88,21 +89,25 @@ export class SecretSmuxDuplex {
   }
 
   async #onReadError(reason?: unknown) {
-    console.debug(`${this.#class.name}.onReadError`, reason)
+    const error = Cascade.unthrow(reason).get()
+
+    console.debug(`${this.#class.name}.onReadError`, error.cause)
 
     this.reader.stream.closed = { reason }
     this.writer.stream.error(reason)
 
-    await this.reader.events.emit("error", reason)
+    await this.reader.events.emit("error", error.cause)
   }
 
   async #onWriteError(reason?: unknown) {
-    console.debug(`${this.#class.name}.onWriteError`, reason)
+    const error = Cascade.unthrow(reason).get()
+
+    console.debug(`${this.#class.name}.onWriteError`, error.cause)
 
     this.writer.stream.closed = { reason }
     this.reader.stream.error(reason)
 
-    await this.writer.events.emit("error", reason)
+    await this.writer.events.emit("error", error.cause)
   }
 
 }
