@@ -155,7 +155,7 @@ export class SecretSmuxReader {
     if (segment.stream !== this.parent.streamID)
       return new Err(new InvalidStreamError(segment.stream))
 
-    this.stream.terminate()
+    this.stream.controller.terminate()
 
     return Ok.void()
   }
