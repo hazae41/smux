@@ -75,8 +75,6 @@ export class SecretSmuxReader {
         }
 
         await this.#onSegment(segment.get()).then(r => r.throw(t))
-
-        continue
       }
 
       return Ok.void()
