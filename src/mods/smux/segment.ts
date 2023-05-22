@@ -63,14 +63,13 @@ export class SmuxSegment<Fragment extends Writable> {
     stream: number,
     fragment: Fragment
   }): Result<SmuxSegment<Fragment>, Writable.SizeError<Fragment>> {
-    const { version, command, stream, fragment } = params
+    return Result.unthrowSync(t => {
+      const { version, command, stream, fragment } = params
 
-    const fragmentSize = fragment.trySize()
+      const fragmentSize = fragment.trySize().throw(t)
 
-    if (fragmentSize.isErr())
-      return fragmentSize
-
-    return new Ok(new SmuxSegment(version, command, stream, fragment, fragmentSize.get()))
+      return new Ok(new SmuxSegment(version, command, stream, fragment, fragmentSize))
+    })
   }
 
   trySize(): Result<number, never> {

@@ -58,25 +58,24 @@ export class SecretSmuxWriter {
   }
 
   async #onWrite<T extends Writable>(fragment: T): Promise<Result<void, PeerWindowOverflow | Writable.SizeError<T>>> {
-    const inflight = this.parent.selfWrite - this.parent.peerConsumed
+    return await Result.unthrow(async t => {
+      const inflight = this.parent.selfWrite - this.parent.peerConsumed
 
-    if (inflight >= this.parent.peerWindow)
-      return new Err(new PeerWindowOverflow())
+      if (inflight >= this.parent.peerWindow)
+        return new Err(new PeerWindowOverflow())
 
-    const version = 2
-    const command = SmuxSegment.commands.psh
-    const stream = this.parent.streamID
+      const version = 2
+      const command = SmuxSegment.commands.psh
+      const stream = this.parent.streamID
 
-    const segment = SmuxSegment.tryNew({ version, command, stream, fragment })
+      const segment = SmuxSegment.tryNew({ version, command, stream, fragment }).throw(t)
 
-    if (segment.isErr())
-      return segment
+      this.stream.enqueue(segment)
 
-    this.stream.enqueue(segment.get())
+      this.parent.selfWrite += segment.fragmentSize
 
-    this.parent.selfWrite += segment.get().fragmentSize
-
-    return Ok.void()
+      return Ok.void()
+    })
   }
 
 }
