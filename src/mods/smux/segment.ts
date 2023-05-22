@@ -70,7 +70,7 @@ export class SmuxSegment<Fragment extends Writable> {
     if (fragmentSize.isErr())
       return fragmentSize
 
-    return new Ok(new SmuxSegment(version, command, stream, fragment, fragmentSize.inner))
+    return new Ok(new SmuxSegment(version, command, stream, fragment, fragmentSize.get()))
   }
 
   trySize(): Result<number, never> {

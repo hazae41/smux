@@ -1,4 +1,4 @@
-import { BinaryReadUnderflowError, Empty, Opaque, Readable } from "@hazae41/binary";
+import { CursorReadLengthUnderflowError, Empty, Opaque, Readable } from "@hazae41/binary";
 import { SuperTransformStream } from "@hazae41/cascade";
 import { Cursor, CursorReadUnknownError, CursorWriteLengthOverflowError } from "@hazae41/cursor";
 import { StreamEvents, SuperEventTarget } from "@hazae41/plume";
@@ -41,7 +41,7 @@ export class SecretSmuxReader {
     })
   }
 
-  async #onRead(chunk: Opaque): Promise<Result<void, InvalidVersionError | InvalidStreamError | CursorReadUnknownError | CursorWriteLengthOverflowError | BinaryReadUnderflowError>> {
+  async #onRead(chunk: Opaque): Promise<Result<void, InvalidVersionError | InvalidStreamError | CursorReadUnknownError | CursorWriteLengthOverflowError | CursorReadLengthUnderflowError>> {
     // console.debug("<-", chunk)
 
     if (this.parent.buffer.offset)
@@ -50,7 +50,7 @@ export class SecretSmuxReader {
       return await this.#onReadDirect(chunk.bytes)
   }
 
-  async #onReadBuffered(chunk: Uint8Array): Promise<Result<void, InvalidVersionError | InvalidStreamError | CursorReadUnknownError | CursorWriteLengthOverflowError | BinaryReadUnderflowError>> {
+  async #onReadBuffered(chunk: Uint8Array): Promise<Result<void, InvalidVersionError | InvalidStreamError | CursorReadUnknownError | CursorWriteLengthOverflowError | CursorReadLengthUnderflowError>> {
     const write = this.parent.buffer.tryWrite(chunk)
 
     if (write.isErr())
@@ -62,7 +62,7 @@ export class SecretSmuxReader {
     return await this.#onReadDirect(full)
   }
 
-  async #onReadDirect(chunk: Uint8Array): Promise<Result<void, InvalidVersionError | InvalidStreamError | CursorReadUnknownError | CursorWriteLengthOverflowError | BinaryReadUnderflowError>> {
+  async #onReadDirect(chunk: Uint8Array): Promise<Result<void, InvalidVersionError | InvalidStreamError | CursorReadUnknownError | CursorWriteLengthOverflowError | CursorReadLengthUnderflowError>> {
     const cursor = new Cursor(chunk)
 
     while (cursor.remaining) {
@@ -77,10 +77,12 @@ export class SecretSmuxReader {
         break
       }
 
-      const result = await this.#onSegment(segment.inner)
+      const result = await this.#onSegment(segment.get())
 
       if (result.isErr())
         return result
+      else
+        result.ignore()
 
       continue
     }
@@ -88,7 +90,7 @@ export class SecretSmuxReader {
     return Ok.void()
   }
 
-  async #onSegment(segment: SmuxSegment<Opaque>): Promise<Result<void, InvalidVersionError | InvalidStreamError | CursorReadUnknownError | BinaryReadUnderflowError>> {
+  async #onSegment(segment: SmuxSegment<Opaque>): Promise<Result<void, InvalidVersionError | InvalidStreamError | CursorReadUnknownError | CursorReadLengthUnderflowError>> {
     if (segment.version !== 2)
       return new Err(new InvalidVersionError(segment.version))
 
@@ -122,9 +124,9 @@ export class SecretSmuxReader {
       const stream = this.parent.streamID
       const fragment = new SmuxUpdate(this.parent.selfRead, this.parent.selfWindow)
 
-      const segment = SmuxSegment.tryNew({ version, command, stream, fragment }).inner
+      const segment = SmuxSegment.tryNew({ version, command, stream, fragment })
 
-      this.parent.writer.stream.enqueue(segment)
+      this.parent.writer.stream.enqueue(segment.get())
       this.parent.selfIncrement = 0
     }
 
@@ -137,14 +139,14 @@ export class SecretSmuxReader {
     const stream = ping.stream
     const fragment = new Empty()
 
-    const pong = SmuxSegment.tryNew({ version, command, stream, fragment }).inner
+    const pong = SmuxSegment.tryNew({ version, command, stream, fragment })
 
-    this.parent.writer.stream.enqueue(pong)
+    this.parent.writer.stream.enqueue(pong.get())
 
     return Ok.void()
   }
 
-  async #onUpdSegment(segment: SmuxSegment<Opaque>): Promise<Result<void, InvalidStreamError | CursorReadUnknownError | BinaryReadUnderflowError>> {
+  async #onUpdSegment(segment: SmuxSegment<Opaque>): Promise<Result<void, InvalidStreamError | CursorReadUnknownError | CursorReadLengthUnderflowError>> {
     if (segment.stream !== this.parent.streamID)
       return new Err(new InvalidStreamError(segment.stream))
 
@@ -153,8 +155,8 @@ export class SecretSmuxReader {
     if (update.isErr())
       return update
 
-    this.parent.peerConsumed = update.inner.consumed
-    this.parent.peerWindow = update.inner.window
+    this.parent.peerConsumed = update.get().consumed
+    this.parent.peerWindow = update.get().window
 
     return Ok.void()
   }
