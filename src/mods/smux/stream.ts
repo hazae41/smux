@@ -2,6 +2,7 @@ import { Opaque, Writable } from "@hazae41/binary"
 import { Bytes } from "@hazae41/bytes"
 import { Cascade } from "@hazae41/cascade"
 import { Cursor } from "@hazae41/cursor"
+import { Ok } from "@hazae41/result"
 import { SecretSmuxReader } from "./reader.js"
 import { SecretSmuxWriter } from "./writer.js"
 
@@ -61,11 +62,13 @@ export class SecretSmuxDuplex {
       .pipeTo(read.writable)
       .then(this.#onReadClose.bind(this))
       .catch(this.#onReadError.bind(this))
+      .catch(console.error)
 
     write.readable
       .pipeTo(stream.writable)
       .then(this.#onWriteClose.bind(this))
       .catch(this.#onWriteError.bind(this))
+      .catch(console.error)
   }
 
   get selfWindow() {
@@ -78,6 +81,8 @@ export class SecretSmuxDuplex {
     this.reader.stream.closed = {}
 
     await this.reader.events.emit("close", undefined)
+
+    return Ok.void()
   }
 
   async #onWriteClose() {
@@ -86,28 +91,34 @@ export class SecretSmuxDuplex {
     this.writer.stream.closed = {}
 
     await this.writer.events.emit("close", undefined)
+
+    return Ok.void()
   }
 
   async #onReadError(reason?: unknown) {
-    const error = Cascade.unthrow(reason).get()
+    const error = Cascade.filter(reason)
 
-    console.debug(`${this.#class.name}.onReadError`, error.cause)
+    console.debug(`${this.#class.name}.onReadError`, { error: error.inner })
 
     this.reader.stream.closed = { reason }
-    this.writer.stream.error(reason)
+    this.writer.stream.controller.inner.error(reason)
 
-    await this.reader.events.emit("error", error.cause)
+    await this.reader.events.emit("error", error.inner)
+
+    return Cascade.rethrow(error)
   }
 
   async #onWriteError(reason?: unknown) {
-    const error = Cascade.unthrow(reason).get()
+    const error = Cascade.filter(reason)
 
-    console.debug(`${this.#class.name}.onWriteError`, error.cause)
+    console.debug(`${this.#class.name}.onWriteError`, { error: error.inner })
 
     this.writer.stream.closed = { reason }
-    this.reader.stream.error(reason)
+    this.reader.stream.controller.inner.error(reason)
 
-    await this.writer.events.emit("error", error.cause)
+    await this.writer.events.emit("error", error.inner)
+
+    return Cascade.rethrow(error)
   }
 
 }

@@ -25,10 +25,10 @@
   "dependencies": {
     "@hazae41/binary": "^1.2.29",
     "@hazae41/bytes": "^1.1.10",
-    "@hazae41/cascade": "^1.1.8",
+    "@hazae41/cascade": "^1.1.18",
     "@hazae41/cursor": "^1.1.14",
-    "@hazae41/plume": "^2.0.2",
-    "@hazae41/result": "^1.0.26"
+    "@hazae41/plume": "^2.0.3",
+    "@hazae41/result": "^1.0.33"
   },
   "devDependencies": {
     "@hazae41/deimos": "^1.0.6",
