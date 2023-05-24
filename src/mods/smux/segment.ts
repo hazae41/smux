@@ -33,7 +33,7 @@ export class SmuxUpdate {
 
 }
 
-export class SmuxSegment<Fragment extends Writable> {
+export class SmuxSegment<Fragment extends Writable.Infer<Fragment>> {
   readonly #class = SmuxSegment
 
   static readonly versions = {
@@ -57,7 +57,7 @@ export class SmuxSegment<Fragment extends Writable> {
     readonly fragmentSize: number
   ) { }
 
-  static tryNew<Fragment extends Writable>(params: {
+  static tryNew<Fragment extends Writable.Infer<Fragment>>(params: {
     version: number,
     command: number,
     stream: number,

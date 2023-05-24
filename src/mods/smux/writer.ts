@@ -57,7 +57,7 @@ export class SecretSmuxWriter {
     this.stream.enqueue(segment.get())
   }
 
-  async #onWrite<T extends Writable>(fragment: T): Promise<Result<void, PeerWindowOverflow | Writable.SizeError<T>>> {
+  async #onWrite<T extends Writable.Infer<T>>(fragment: T): Promise<Result<void, PeerWindowOverflow | Writable.SizeError<T>>> {
     return await Result.unthrow(async t => {
       const inflight = this.parent.selfWrite - this.parent.peerConsumed
 
