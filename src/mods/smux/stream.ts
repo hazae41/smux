@@ -98,8 +98,6 @@ export class SecretSmuxDuplex {
   }
 
   async #onReadError(reason?: unknown) {
-    const error = Cascade.filter(reason)
-
     console.debug(`${this.#class.name}.onReadError`, { reason })
 
     this.reader.stream.closed = { reason }
@@ -107,12 +105,10 @@ export class SecretSmuxDuplex {
 
     await this.reader.events.emit("error", reason)
 
-    return Cascade.rethrow(error)
+    return Cascade.rethrow(reason)
   }
 
   async #onWriteError(reason?: unknown) {
-    const error = Cascade.filter(reason)
-
     console.debug(`${this.#class.name}.onWriteError`, { reason })
 
     this.writer.stream.closed = { reason }
@@ -120,7 +116,7 @@ export class SecretSmuxDuplex {
 
     await this.writer.events.emit("error", reason)
 
-    return Cascade.rethrow(error)
+    return Cascade.rethrow(reason)
   }
 
 }
