@@ -66,11 +66,10 @@ export class SecretSmuxReader {
       const cursor = new Cursor(chunk)
 
       while (cursor.remaining) {
-        const segment = Readable.tryReadOrRollback(SmuxSegment, cursor)
+        const segment = Readable.tryReadOrRollback(SmuxSegment, cursor).ignore()
 
         if (segment.isErr()) {
           this.parent.buffer.tryWrite(cursor.after).throw(t)
-
           break
         }
 
