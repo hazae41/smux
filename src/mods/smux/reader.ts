@@ -1,10 +1,15 @@
-import { CursorReadLengthUnderflowError, Empty, Opaque, Readable } from "@hazae41/binary";
+import { BinaryError, BinaryReadError, Empty, Opaque, Readable } from "@hazae41/binary";
 import { SuperTransformStream } from "@hazae41/cascade";
-import { Cursor, CursorReadUnknownError, CursorWriteLengthOverflowError } from "@hazae41/cursor";
+import { Cursor } from "@hazae41/cursor";
 import { StreamEvents, SuperEventTarget } from "@hazae41/plume";
 import { Err, Ok, Result } from "@hazae41/result";
 import { SmuxSegment, SmuxUpdate } from "./segment.js";
 import { SecretSmuxDuplex } from "./stream.js";
+
+export type SmuxReadError =
+  | UnknownSmuxCommandError
+  | InvalidSmuxVersionError
+  | InvalidSmuxStreamError
 
 export class UnknownSmuxCommandError extends Error {
   readonly #class = UnknownSmuxCommandError
@@ -53,7 +58,7 @@ export class SecretSmuxReader {
     })
   }
 
-  async #onRead(chunk: Opaque): Promise<Result<void, UnknownSmuxCommandError | InvalidSmuxVersionError | InvalidSmuxStreamError | CursorReadUnknownError | CursorWriteLengthOverflowError | CursorReadLengthUnderflowError>> {
+  async #onRead(chunk: Opaque): Promise<Result<void, SmuxReadError | BinaryError>> {
     // console.debug("<-", chunk)
 
     if (this.parent.buffer.offset)
@@ -62,7 +67,7 @@ export class SecretSmuxReader {
       return await this.#onReadDirect(chunk.bytes)
   }
 
-  async #onReadBuffered(chunk: Uint8Array): Promise<Result<void, UnknownSmuxCommandError | InvalidSmuxVersionError | InvalidSmuxStreamError | CursorReadUnknownError | CursorWriteLengthOverflowError | CursorReadLengthUnderflowError>> {
+  async #onReadBuffered(chunk: Uint8Array): Promise<Result<void, SmuxReadError | BinaryError>> {
     return await Result.unthrow(async t => {
       this.parent.buffer.tryWrite(chunk).throw(t)
 
@@ -73,7 +78,7 @@ export class SecretSmuxReader {
     })
   }
 
-  async #onReadDirect(chunk: Uint8Array): Promise<Result<void, UnknownSmuxCommandError | InvalidSmuxVersionError | InvalidSmuxStreamError | CursorReadUnknownError | CursorWriteLengthOverflowError | CursorReadLengthUnderflowError>> {
+  async #onReadDirect(chunk: Uint8Array): Promise<Result<void, SmuxReadError | BinaryError>> {
     return await Result.unthrow(async t => {
       const cursor = new Cursor(chunk)
 
@@ -92,7 +97,7 @@ export class SecretSmuxReader {
     })
   }
 
-  async #onSegment(segment: SmuxSegment<Opaque>): Promise<Result<void, UnknownSmuxCommandError | InvalidSmuxVersionError | InvalidSmuxStreamError | CursorReadUnknownError | CursorReadLengthUnderflowError>> {
+  async #onSegment(segment: SmuxSegment<Opaque>): Promise<Result<void, SmuxReadError | BinaryReadError>> {
     if (segment.version !== 2)
       return new Err(new InvalidSmuxVersionError(segment.version))
 
@@ -110,7 +115,7 @@ export class SecretSmuxReader {
     return new Err(new UnknownSmuxCommandError())
   }
 
-  async #onPshSegment(segment: SmuxSegment<Opaque>): Promise<Result<void, InvalidSmuxStreamError>> {
+  async #onPshSegment(segment: SmuxSegment<Opaque>): Promise<Result<void, SmuxReadError>> {
     if (segment.stream !== this.parent.streamID)
       return new Err(new InvalidSmuxStreamError(segment.stream))
 
@@ -147,12 +152,12 @@ export class SecretSmuxReader {
     return Ok.void()
   }
 
-  async #onUpdSegment(segment: SmuxSegment<Opaque>): Promise<Result<void, InvalidSmuxStreamError | CursorReadUnknownError | CursorReadLengthUnderflowError>> {
+  async #onUpdSegment(segment: SmuxSegment<Opaque>): Promise<Result<void, SmuxReadError | BinaryReadError>> {
     return await Result.unthrow(async t => {
       if (segment.stream !== this.parent.streamID)
         return new Err(new InvalidSmuxStreamError(segment.stream))
 
-      const update = segment.fragment.tryInto(SmuxUpdate).throw(t)
+      const update = segment.fragment.tryReadInto(SmuxUpdate).throw(t)
 
       this.parent.peerConsumed = update.consumed
       this.parent.peerWindow = update.window
@@ -161,7 +166,7 @@ export class SecretSmuxReader {
     })
   }
 
-  async #onFinSegment(segment: SmuxSegment<Opaque>): Promise<Result<void, InvalidSmuxStreamError>> {
+  async #onFinSegment(segment: SmuxSegment<Opaque>): Promise<Result<void, SmuxReadError>> {
     if (segment.stream !== this.parent.streamID)
       return new Err(new InvalidSmuxStreamError(segment.stream))
 

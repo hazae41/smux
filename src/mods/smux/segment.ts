@@ -1,5 +1,5 @@
-import { Opaque, Writable } from "@hazae41/binary"
-import { Cursor, CursorReadLengthOverflowError, CursorReadUnknownError, CursorWriteUnknownError } from "@hazae41/cursor"
+import { BinaryReadError, BinaryWriteError, Opaque, Writable } from "@hazae41/binary"
+import { Cursor, CursorReadUnknownError, CursorWriteUnknownError } from "@hazae41/cursor"
 import { Ok, Result } from "@hazae41/result"
 
 export class SmuxUpdate {
@@ -81,7 +81,7 @@ export class SmuxSegment<Fragment extends Writable.Infer<Fragment>> {
       + this.fragmentSize)
   }
 
-  tryWrite(cursor: Cursor): Result<void, CursorWriteUnknownError | Writable.WriteError<Fragment>> {
+  tryWrite(cursor: Cursor): Result<void, Writable.WriteError<Fragment> | BinaryWriteError> {
     return Result.unthrowSync(t => {
       cursor.tryWriteUint8(this.version).throw(t)
       cursor.tryWriteUint8(this.command).throw(t)
@@ -94,7 +94,7 @@ export class SmuxSegment<Fragment extends Writable.Infer<Fragment>> {
     })
   }
 
-  static tryRead(cursor: Cursor): Result<SmuxSegment<Opaque>, CursorReadUnknownError | CursorReadLengthOverflowError> {
+  static tryRead(cursor: Cursor): Result<SmuxSegment<Opaque>, BinaryReadError> {
     return Result.unthrowSync(t => {
       const version = cursor.tryReadUint8().throw(t)
       const command = cursor.tryReadUint8().throw(t)

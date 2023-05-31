@@ -33,7 +33,7 @@ export class SecretSmuxDuplex {
   selfIncrement = 0
 
   peerConsumed = 0
-  peerWindow = 65535
+  peerWindow = 65_535
 
   readonly reader: SecretSmuxReader
   readonly writer: SecretSmuxWriter
@@ -41,7 +41,7 @@ export class SecretSmuxDuplex {
   readonly readable: ReadableStream<Opaque>
   readonly writable: WritableStream<Writable>
 
-  readonly buffer: Cursor<Bytes<65_535>> = Cursor.allocUnsafe(65_535)
+  readonly buffer: Cursor<Bytes<65_535>> = Cursor.tryAllocUnsafe(65_535).unwrap()
 
   readonly streamID = 3
 

@@ -5,8 +5,12 @@ import { Err, Ok, Result } from "@hazae41/result";
 import { SmuxSegment, SmuxUpdate } from "./segment.js";
 import { SecretSmuxDuplex } from "./stream.js";
 
+export type SmuxWriteError =
+  | PeerWindowOverflow
+
 export class PeerWindowOverflow extends Error {
   readonly #class = PeerWindowOverflow
+  readonly name = this.#class.name
 
   constructor() {
     super(`Peer window reached`)
@@ -57,7 +61,7 @@ export class SecretSmuxWriter {
     this.stream.enqueue(segment.get())
   }
 
-  async #onWrite<T extends Writable.Infer<T>>(fragment: T): Promise<Result<void, PeerWindowOverflow | Writable.SizeError<T>>> {
+  async #onWrite<T extends Writable.Infer<T>>(fragment: T): Promise<Result<void, Writable.SizeError<T> | SmuxWriteError>> {
     return await Result.unthrow(async t => {
       const inflight = this.parent.selfWrite - this.parent.peerConsumed
 
