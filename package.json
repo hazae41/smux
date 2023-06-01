@@ -27,7 +27,7 @@
     "@hazae41/bytes": "^1.1.19",
     "@hazae41/cascade": "^1.1.23",
     "@hazae41/cursor": "^1.1.18",
-    "@hazae41/plume": "^2.0.8",
+    "@hazae41/plume": "^2.0.9",
     "@hazae41/result": "^1.0.42"
   },
   "devDependencies": {
