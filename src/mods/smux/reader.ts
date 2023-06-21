@@ -70,7 +70,6 @@ export class SecretSmuxReader {
   async #onReadBuffered(chunk: Uint8Array): Promise<Result<void, SmuxReadError | BinaryError>> {
     return await Result.unthrow(async t => {
       this.parent.buffer.tryWrite(chunk).throw(t)
-
       const full = new Uint8Array(this.parent.buffer.before)
 
       this.parent.buffer.offset = 0
