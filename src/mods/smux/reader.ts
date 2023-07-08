@@ -1,7 +1,7 @@
 import { BinaryError, BinaryReadError, Empty, Opaque, Readable } from "@hazae41/binary";
 import { SuperTransformStream } from "@hazae41/cascade";
 import { Cursor } from "@hazae41/cursor";
-import { StreamEvents, SuperEventTarget } from "@hazae41/plume";
+import { CloseEvents, ErrorEvents, SuperEventTarget } from "@hazae41/plume";
 import { Err, Ok, Result } from "@hazae41/result";
 import { SmuxSegment, SmuxUpdate } from "./segment.js";
 import { SecretSmuxDuplex } from "./stream.js";
@@ -46,7 +46,7 @@ export class InvalidSmuxStreamError extends Error {
 
 export class SecretSmuxReader {
 
-  readonly events = new SuperEventTarget<StreamEvents>()
+  readonly events = new SuperEventTarget<CloseEvents & ErrorEvents>()
 
   readonly stream: SuperTransformStream<Opaque, Opaque>
 

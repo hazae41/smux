@@ -81,7 +81,7 @@ export class SecretSmuxDuplex {
 
     this.reader.stream.closed = {}
 
-    await this.reader.events.emit("close", undefined)
+    await this.reader.events.emit("close", [undefined])
 
     return Ok.void()
   }
@@ -91,7 +91,7 @@ export class SecretSmuxDuplex {
 
     this.writer.stream.closed = {}
 
-    await this.writer.events.emit("close", undefined)
+    await this.writer.events.emit("close", [undefined])
 
     return Ok.void()
   }
@@ -102,7 +102,7 @@ export class SecretSmuxDuplex {
     this.reader.stream.closed = { reason }
     this.writer.stream.error(reason)
 
-    await this.reader.events.emit("error", reason)
+    await this.reader.events.emit("error", [reason])
 
     return Result.rethrow(reason)
   }
@@ -113,7 +113,7 @@ export class SecretSmuxDuplex {
     this.writer.stream.closed = { reason }
     this.reader.stream.error(reason)
 
-    await this.writer.events.emit("error", reason)
+    await this.writer.events.emit("error", [reason])
 
     return Result.rethrow(reason)
   }

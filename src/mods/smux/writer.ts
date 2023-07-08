@@ -1,6 +1,6 @@
 import { Empty, Writable } from "@hazae41/binary";
 import { SuperTransformStream } from "@hazae41/cascade";
-import { StreamEvents, SuperEventTarget } from "@hazae41/plume";
+import { CloseEvents, ErrorEvents, SuperEventTarget } from "@hazae41/plume";
 import { Err, Ok, Result } from "@hazae41/result";
 import { SmuxSegment, SmuxUpdate } from "./segment.js";
 import { SecretSmuxDuplex } from "./stream.js";
@@ -19,7 +19,7 @@ export class PeerWindowOverflow extends Error {
 
 export class SecretSmuxWriter {
 
-  readonly events = new SuperEventTarget<StreamEvents>()
+  readonly events = new SuperEventTarget<CloseEvents & ErrorEvents>()
 
   readonly stream: SuperTransformStream<Writable, Writable>
 
