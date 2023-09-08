@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@hazae41/smux",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "author": "hazae41",
   "license": "MIT",
   "description": "Zero-copy SMUX protocol for the web",
