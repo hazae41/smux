@@ -1,7 +1,7 @@
 import { Opaque, Writable } from "@hazae41/binary"
 import { Bytes } from "@hazae41/bytes"
 import { Cursor } from "@hazae41/cursor"
-import { Ok, Result } from "@hazae41/result"
+import { Catched, Ok } from "@hazae41/result"
 import { SecretSmuxReader } from "./reader.js"
 import { SecretSmuxWriter } from "./writer.js"
 
@@ -41,7 +41,7 @@ export class SecretSmuxDuplex {
   readonly readable: ReadableStream<Opaque>
   readonly writable: WritableStream<Writable>
 
-  readonly buffer: Cursor<Bytes<65_535>> = Cursor.tryAllocUnsafe(65_535).unwrap()
+  readonly buffer: Cursor<Bytes<65_535>> = new Cursor(Bytes.tryAllocUnsafe(65_535).unwrap())
 
   readonly streamID = 3
 
@@ -104,7 +104,7 @@ export class SecretSmuxDuplex {
 
     await this.reader.events.emit("error", [reason])
 
-    return Result.rethrow(reason)
+    return Catched.throwOrErr(reason)
   }
 
   async #onWriteError(reason?: unknown) {
@@ -115,7 +115,7 @@ export class SecretSmuxDuplex {
 
     await this.writer.events.emit("error", [reason])
 
-    return Result.rethrow(reason)
+    return Catched.throwOrErr(reason)
   }
 
 }

@@ -15,7 +15,7 @@ test("kcp segment", async ({ test }) => {
   const version = 2
   const command = SmuxSegment.commands.psh
   const stream = 12345
-  const fragment = Opaque.random(130)
+  const fragment = new Opaque(Bytes.random(130))
 
   const segment = SmuxSegment.tryNew({ version, command, stream, fragment }).unwrap()
   const bytes = Writable.tryWriteToBytes(segment).unwrap()

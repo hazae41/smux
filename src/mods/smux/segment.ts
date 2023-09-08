@@ -9,6 +9,8 @@ export class SmuxUpdate {
     readonly window: number
   ) { }
 
+  [Symbol.dispose]() { }
+
   trySize(): Result<number, never> {
     return new Ok(4 + 4)
   }
@@ -56,6 +58,8 @@ export class SmuxSegment<Fragment extends Writable.Infer<Fragment>> {
     readonly fragment: Fragment,
     readonly fragmentSize: number
   ) { }
+
+  [Symbol.dispose]() { }
 
   static tryNew<Fragment extends Writable.Infer<Fragment>>(params: {
     version: number,
