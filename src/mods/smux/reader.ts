@@ -59,7 +59,7 @@ export class SecretSmuxReader {
   }
 
   async #onRead(chunk: Opaque): Promise<Result<void, SmuxReadError | BinaryError>> {
-    // console.debug("<-", chunk)
+    // Console.debug("<-", chunk)
 
     if (this.parent.buffer.offset)
       return await this.#onReadBuffered(chunk.bytes)
@@ -100,7 +100,7 @@ export class SecretSmuxReader {
     if (segment.version !== 2)
       return new Err(new InvalidSmuxVersionError(segment.version))
 
-    // console.log("<-", segment)
+    // Console.log("<-", segment)
 
     if (segment.command === SmuxSegment.commands.psh)
       return await this.#onPshSegment(segment)

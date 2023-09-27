@@ -2,6 +2,7 @@ import { Opaque, Writable } from "@hazae41/binary"
 import { Bytes } from "@hazae41/bytes"
 import { Cursor } from "@hazae41/cursor"
 import { Catched, Ok } from "@hazae41/result"
+import { Console } from "mods/console/index.js"
 import { SecretSmuxReader } from "./reader.js"
 import { SecretSmuxWriter } from "./writer.js"
 
@@ -77,7 +78,7 @@ export class SecretSmuxDuplex {
   }
 
   async #onReadClose() {
-    console.debug(`${this.#class.name}.onReadClose`)
+    Console.debug(`${this.#class.name}.onReadClose`)
 
     this.reader.stream.closed = {}
 
@@ -87,7 +88,7 @@ export class SecretSmuxDuplex {
   }
 
   async #onWriteClose() {
-    console.debug(`${this.#class.name}.onWriteClose`)
+    Console.debug(`${this.#class.name}.onWriteClose`)
 
     this.writer.stream.closed = {}
 
@@ -97,7 +98,7 @@ export class SecretSmuxDuplex {
   }
 
   async #onReadError(reason?: unknown) {
-    console.debug(`${this.#class.name}.onReadError`, { reason })
+    Console.debug(`${this.#class.name}.onReadError`, { reason })
 
     this.reader.stream.closed = { reason }
     this.writer.stream.error(reason)
@@ -108,7 +109,7 @@ export class SecretSmuxDuplex {
   }
 
   async #onWriteError(reason?: unknown) {
-    console.debug(`${this.#class.name}.onWriteError`, { reason })
+    Console.debug(`${this.#class.name}.onWriteError`, { reason })
 
     this.writer.stream.closed = { reason }
     this.reader.stream.error(reason)
