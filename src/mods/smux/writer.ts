@@ -45,9 +45,9 @@ export class SecretSmuxWriter {
     const stream = this.parent.streamID
     const fragment = new Empty()
 
-    const segment = SmuxSegment.tryNew({ version, command, stream, fragment })
+    const segment = SmuxSegment.empty({ version, command, stream, fragment })
 
-    this.stream.enqueue(segment.get())
+    this.stream.enqueue(segment)
   }
 
   async #sendUPD() {
@@ -56,12 +56,12 @@ export class SecretSmuxWriter {
     const stream = this.parent.streamID
     const fragment = new SmuxUpdate(0, this.parent.selfWindow)
 
-    const segment = SmuxSegment.tryNew({ version, command, stream, fragment })
+    const segment = SmuxSegment.newOrThrow({ version, command, stream, fragment })
 
-    this.stream.enqueue(segment.get())
+    this.stream.enqueue(segment)
   }
 
-  async #onWrite<T extends Writable.Infer<T>>(fragment: T): Promise<Result<void, Writable.SizeError<T> | SmuxWriteError>> {
+  async #onWrite(fragment: Writable): Promise<Result<void, Error>> {
     return await Result.unthrow(async t => {
       const inflight = this.parent.selfWrite - this.parent.peerConsumed
 

@@ -1,4 +1,4 @@
-import { BinaryError, BinaryReadError, Empty, Opaque, Readable } from "@hazae41/binary";
+import { Empty, Opaque, Readable } from "@hazae41/binary";
 import { SuperTransformStream } from "@hazae41/cascade";
 import { Cursor } from "@hazae41/cursor";
 import { CloseEvents, ErrorEvents, SuperEventTarget } from "@hazae41/plume";
@@ -58,7 +58,7 @@ export class SecretSmuxReader {
     })
   }
 
-  async #onRead(chunk: Opaque): Promise<Result<void, SmuxReadError | BinaryError>> {
+  async #onRead(chunk: Opaque): Promise<Result<void, Error>> {
     // Console.debug("<-", chunk)
 
     if (this.parent.buffer.offset)
@@ -67,7 +67,7 @@ export class SecretSmuxReader {
       return await this.#onReadDirect(chunk.bytes)
   }
 
-  async #onReadBuffered(chunk: Uint8Array): Promise<Result<void, SmuxReadError | BinaryError>> {
+  async #onReadBuffered(chunk: Uint8Array): Promise<Result<void, Error>> {
     return await Result.unthrow(async t => {
       this.parent.buffer.tryWrite(chunk).throw(t)
       const full = new Uint8Array(this.parent.buffer.before)
@@ -77,7 +77,7 @@ export class SecretSmuxReader {
     })
   }
 
-  async #onReadDirect(chunk: Uint8Array): Promise<Result<void, SmuxReadError | BinaryError>> {
+  async #onReadDirect(chunk: Uint8Array): Promise<Result<void, Error>> {
     return await Result.unthrow(async t => {
       const cursor = new Cursor(chunk)
 
@@ -96,7 +96,7 @@ export class SecretSmuxReader {
     })
   }
 
-  async #onSegment(segment: SmuxSegment<Opaque>): Promise<Result<void, SmuxReadError | BinaryReadError>> {
+  async #onSegment(segment: SmuxSegment<Opaque>): Promise<Result<void, Error>> {
     if (segment.version !== 2)
       return new Err(new InvalidSmuxVersionError(segment.version))
 
@@ -129,9 +129,9 @@ export class SecretSmuxReader {
       const stream = this.parent.streamID
       const fragment = new SmuxUpdate(this.parent.selfRead, this.parent.selfWindow)
 
-      const segment = SmuxSegment.tryNew({ version, command, stream, fragment })
+      const segment = SmuxSegment.newOrThrow({ version, command, stream, fragment })
 
-      this.parent.writer.stream.enqueue(segment.get())
+      this.parent.writer.stream.enqueue(segment)
       this.parent.selfIncrement = 0
     }
 
@@ -144,14 +144,14 @@ export class SecretSmuxReader {
     const stream = ping.stream
     const fragment = new Empty()
 
-    const pong = SmuxSegment.tryNew({ version, command, stream, fragment })
+    const pong = SmuxSegment.empty({ version, command, stream, fragment })
 
-    this.parent.writer.stream.enqueue(pong.get())
+    this.parent.writer.stream.enqueue(pong)
 
     return Ok.void()
   }
 
-  async #onUpdSegment(segment: SmuxSegment<Opaque>): Promise<Result<void, SmuxReadError | BinaryReadError>> {
+  async #onUpdSegment(segment: SmuxSegment<Opaque>): Promise<Result<void, Error>> {
     return await Result.unthrow(async t => {
       if (segment.stream !== this.parent.streamID)
         return new Err(new InvalidSmuxStreamError(segment.stream))
