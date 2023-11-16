@@ -9,10 +9,8 @@ export class SmuxDuplex {
 
   readonly #secret: SecretSmuxDuplex
 
-  constructor(
-    readonly stream: ReadableWritablePair<Opaque, Writable>
-  ) {
-    this.#secret = new SecretSmuxDuplex(stream)
+  constructor() {
+    this.#secret = new SecretSmuxDuplex()
   }
 
   get inner() {
@@ -45,9 +43,7 @@ export class SecretSmuxDuplex {
 
   readonly streamID = 3
 
-  constructor(
-    readonly stream: ReadableWritablePair<Opaque, Writable>
-  ) {
+  constructor() {
     this.reader = new SecretSmuxReader(this)
     this.writer = new SecretSmuxWriter(this)
 
