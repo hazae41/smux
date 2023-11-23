@@ -48,10 +48,10 @@ export class SecretSmuxDuplex {
     this.writer = new SecretSmuxWriter(this)
 
     const preInputer = this.reader.stream.start()
-    const preOutputer = this.writer.stream.start()
+    const postOutputer = this.writer.stream.start()
 
     const postInputer = new TransformStream<Opaque, Opaque>({})
-    const postOutputer = new TransformStream<Writable, Writable>({})
+    const preOutputer = new TransformStream<Writable, Writable>({})
 
     /**
      * Inner protocol (UDP?)
