@@ -1,5 +1,5 @@
 import { Opaque, Writable } from "@hazae41/binary"
-import { Bytes } from "@hazae41/bytes"
+import { Bytes, Uint8Array } from "@hazae41/bytes"
 import { Cursor } from "@hazae41/cursor"
 import { Console } from "mods/console/index.js"
 import { SecretSmuxReader } from "./reader.js"
@@ -39,7 +39,7 @@ export class SecretSmuxDuplex {
   readonly inner: ReadableWritablePair<Writable, Opaque>
   readonly outer: ReadableWritablePair<Opaque, Writable>
 
-  readonly buffer: Cursor<Bytes<65_535>> = new Cursor(Bytes.alloc(65_535))
+  readonly buffer: Cursor<Uint8Array<65_535>> = new Cursor(Bytes.alloc(65_535))
 
   readonly streamID = 3
 
