@@ -1,6 +1,5 @@
 import { Empty, Opaque, Writable } from "@hazae41/binary"
 import { Cursor } from "@hazae41/cursor"
-import { Result } from "@hazae41/result"
 
 export class SmuxUpdate {
 
@@ -65,10 +64,6 @@ export class SmuxSegment<Fragment extends Writable> {
   static newOrThrow<Fragment extends Writable>(params: SmuxSegmentParams<Fragment>) {
     const { version, command, stream, fragment } = params
     return new SmuxSegment(version, command, stream, fragment, fragment.sizeOrThrow())
-  }
-
-  static tryNew<Fragment extends Writable>(params: SmuxSegmentParams<Fragment>): Result<SmuxSegment<Fragment>, Error> {
-    return Result.runAndDoubleWrapSync(() => SmuxSegment.newOrThrow(params))
   }
 
   sizeOrThrow() {
