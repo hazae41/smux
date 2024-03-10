@@ -41,6 +41,14 @@ export class SmuxDuplex {
     return this.#secret.closed
   }
 
+  async error(reason?: unknown) {
+    await this.#secret.error(reason)
+  }
+
+  async close() {
+    await this.#secret.close()
+  }
+
 }
 
 export class SecretSmuxDuplex {
@@ -99,6 +107,14 @@ export class SecretSmuxDuplex {
 
   get closed() {
     return this.smux.closed
+  }
+
+  async error(reason?: unknown) {
+    await this.smux.error(reason)
+  }
+
+  async close() {
+    await this.smux.close()
   }
 
 }
