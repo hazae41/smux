@@ -17,7 +17,7 @@ export class SmuxDuplex {
   readonly events = new SuperEventTarget<HalfDuplexEvents>()
 
   constructor(
-    readonly params: SmuxDuplexParams
+    readonly params: SmuxDuplexParams = {}
   ) {
     this.#secret = new SecretSmuxDuplex(params)
 
@@ -57,7 +57,7 @@ export class SecretSmuxDuplex extends HalfDuplex<Opaque, Writable> {
   peerWindow = 65_535
 
   constructor(
-    readonly params: SmuxDuplexParams
+    readonly params: SmuxDuplexParams = {}
   ) {
     super()
 
