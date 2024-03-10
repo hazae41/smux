@@ -74,15 +74,15 @@ export class SecretSmuxDuplex {
   constructor(
     readonly params: SmuxDuplexParams = {}
   ) {
+    this.smux.events.on("close", () => this.events.emit("close"))
+    this.smux.events.on("error", e => this.events.emit("error", e))
+
     const { stream: streamID = 3 } = params
 
     this.stream = streamID
 
     this.reader = new SecretSmuxReader(this)
     this.writer = new SecretSmuxWriter(this)
-
-    this.smux.events.on("close", () => this.events.emit("close"))
-    this.smux.events.on("error", e => this.events.emit("error", e))
   }
 
   get selfWindow() {
