@@ -1,6 +1,6 @@
 import { Opaque, Writable } from "@hazae41/binary"
 import { Bytes } from "@hazae41/bytes"
-import { HalfDuplex, HalfDuplexEvents } from "@hazae41/cascade"
+import { CloseEvents, ErrorEvents, HalfDuplex, HalfDuplexEvents } from "@hazae41/cascade"
 import { Cursor } from "@hazae41/cursor"
 import { SuperEventTarget } from "@hazae41/plume"
 import { SecretSmuxReader } from "./reader.js"
@@ -21,9 +21,12 @@ export class SmuxDuplex {
   ) {
     this.#secret = new SecretSmuxDuplex(params)
 
-    this.#secret.events.on("open", () => this.events.emit("open"))
     this.#secret.events.on("close", () => this.events.emit("close"))
     this.#secret.events.on("error", e => this.events.emit("error", e))
+  }
+
+  get stream() {
+    return this.#secret.stream
   }
 
   get inner() {
@@ -34,13 +37,17 @@ export class SmuxDuplex {
     return this.#secret.outer
   }
 
-  get stream() {
-    return this.#secret.stream
+  get closed() {
+    return this.#secret.closed
   }
 
 }
 
-export class SecretSmuxDuplex extends HalfDuplex<Opaque, Writable> {
+export class SecretSmuxDuplex {
+
+  readonly smux = new HalfDuplex<Opaque, Writable>()
+
+  readonly events = new SuperEventTarget<CloseEvents & ErrorEvents>()
 
   readonly reader: SecretSmuxReader
   readonly writer: SecretSmuxWriter
@@ -59,18 +66,39 @@ export class SecretSmuxDuplex extends HalfDuplex<Opaque, Writable> {
   constructor(
     readonly params: SmuxDuplexParams = {}
   ) {
-    super()
-
     const { stream: streamID = 3 } = params
 
     this.stream = streamID
 
     this.reader = new SecretSmuxReader(this)
     this.writer = new SecretSmuxWriter(this)
+
+    this.smux.events.on("close", () => this.events.emit("close"))
+    this.smux.events.on("error", e => this.events.emit("error", e))
   }
 
   get selfWindow() {
     return this.buffer.bytes.length
+  }
+
+  get inner() {
+    return this.smux.inner
+  }
+
+  get outer() {
+    return this.smux.outer
+  }
+
+  get input() {
+    return this.smux.input
+  }
+
+  get output() {
+    return this.smux.output
+  }
+
+  get closed() {
+    return this.smux.closed
   }
 
 }
