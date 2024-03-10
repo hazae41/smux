@@ -1,7 +1,6 @@
 import { Empty, Opaque, Readable } from "@hazae41/binary";
-import { SuperTransformStream } from "@hazae41/cascade";
 import { Cursor } from "@hazae41/cursor";
-import { CloseEvents, ErrorEvents, SuperEventTarget } from "@hazae41/plume";
+import { None } from "@hazae41/option";
 import { SmuxSegment, SmuxUpdate } from "./segment.js";
 import { SecretSmuxDuplex } from "./stream.js";
 
@@ -45,19 +44,16 @@ export class InvalidSmuxStreamError extends Error {
 
 export class SecretSmuxReader {
 
-  readonly events = new SuperEventTarget<CloseEvents & ErrorEvents>()
-
-  readonly stream: SuperTransformStream<Opaque, Opaque>
-
   constructor(
     readonly parent: SecretSmuxDuplex
   ) {
-    this.stream = new SuperTransformStream({
-      transform: this.#onTransform.bind(this)
+    this.parent.input.events.on("message", async chunk => {
+      await this.#onMessage(chunk)
+      return new None()
     })
   }
 
-  async #onTransform(chunk: Opaque) {
+  async #onMessage(chunk: Opaque) {
     // Console.debug("<-", chunk)
 
     if (this.parent.buffer.offset)
@@ -116,7 +112,7 @@ export class SecretSmuxReader {
     this.parent.selfRead += segment.fragment.bytes.length
     this.parent.selfIncrement += segment.fragment.bytes.length
 
-    this.stream.enqueue(segment.fragment)
+    await this.parent.input.enqueue(segment.fragment)
 
     if (this.parent.selfIncrement >= (this.parent.selfWindow / 2)) {
       const version = 2
@@ -126,7 +122,8 @@ export class SecretSmuxReader {
 
       const segment = SmuxSegment.newOrThrow({ version, command, stream, fragment })
 
-      this.parent.writer.stream.enqueue(segment)
+      await this.parent.output.enqueue(segment)
+
       this.parent.selfIncrement = 0
     }
   }
@@ -139,7 +136,7 @@ export class SecretSmuxReader {
 
     const pong = SmuxSegment.empty({ version, command, stream, fragment })
 
-    this.parent.writer.stream.enqueue(pong)
+    await this.parent.output.enqueue(pong)
   }
 
   async #onUpdSegment(segment: SmuxSegment<Opaque>) {
@@ -156,7 +153,7 @@ export class SecretSmuxReader {
     if (segment.stream !== this.parent.streamID)
       throw new InvalidSmuxStreamError(segment.stream)
 
-    this.stream.controller.terminate()
+    await this.parent.output.close()
   }
 
 }

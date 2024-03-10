@@ -23,5 +23,5 @@ npm i @hazae41/smux
 ```typescript
 import { SmuxDuplex } from "@hazae41/smux"
 
-const smux = new SmuxDuplex(kcp)
+const smux = new SmuxDuplex({ streamID: 3 })
 ```
