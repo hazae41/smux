@@ -47,7 +47,7 @@ export class SecretSmuxReader {
   constructor(
     readonly parent: SecretSmuxDuplex
   ) {
-    this.parent.subduplex.input.events.on("message", async chunk => {
+    this.parent.input.events.on("message", async chunk => {
       await this.#onMessage(chunk)
       return new None()
     })
@@ -112,7 +112,7 @@ export class SecretSmuxReader {
     this.parent.selfRead += segment.fragment.bytes.length
     this.parent.selfIncrement += segment.fragment.bytes.length
 
-    await this.parent.subduplex.input.enqueue(segment.fragment)
+    await this.parent.input.enqueue(segment.fragment)
 
     if (this.parent.selfIncrement >= (this.parent.selfWindow / 2)) {
       const version = 2
@@ -122,7 +122,7 @@ export class SecretSmuxReader {
 
       const segment = SmuxSegment.newOrThrow({ version, command, stream, fragment })
 
-      await this.parent.subduplex.output.enqueue(segment)
+      await this.parent.output.enqueue(segment)
 
       this.parent.selfIncrement = 0
     }
@@ -136,7 +136,7 @@ export class SecretSmuxReader {
 
     const pong = SmuxSegment.empty({ version, command, stream, fragment })
 
-    await this.parent.subduplex.output.enqueue(pong)
+    await this.parent.output.enqueue(pong)
   }
 
   async #onUpdSegment(segment: SmuxSegment<Opaque>) {
@@ -153,7 +153,7 @@ export class SecretSmuxReader {
     if (segment.stream !== this.parent.stream)
       throw new InvalidSmuxStreamError(segment.stream)
 
-    await this.parent.subduplex.output.close()
+    await this.parent.output.close()
   }
 
 }

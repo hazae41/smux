@@ -1,7 +1,8 @@
 import { Opaque, Writable } from "@hazae41/binary"
 import { Bytes } from "@hazae41/bytes"
-import { HalfDuplex } from "@hazae41/cascade"
+import { HalfDuplex, HalfDuplexEvents } from "@hazae41/cascade"
 import { Cursor } from "@hazae41/cursor"
+import { SuperEventTarget } from "@hazae41/plume"
 import { SecretSmuxReader } from "./reader.js"
 import { SecretSmuxWriter } from "./writer.js"
 
@@ -13,22 +14,24 @@ export class SmuxDuplex {
 
   readonly #secret: SecretSmuxDuplex
 
+  readonly events = new SuperEventTarget<HalfDuplexEvents>()
+
   constructor(
     readonly params: SmuxDuplexParams
   ) {
     this.#secret = new SecretSmuxDuplex(params)
-  }
 
-  get events() {
-    return this.#secret.subduplex.events
+    this.#secret.events.on("open", () => this.events.emit("open"))
+    this.#secret.events.on("close", () => this.events.emit("close"))
+    this.#secret.events.on("error", e => this.events.emit("error", e))
   }
 
   get inner() {
-    return this.#secret.subduplex.inner
+    return this.#secret.inner
   }
 
   get outer() {
-    return this.#secret.subduplex.outer
+    return this.#secret.outer
   }
 
   get stream() {
@@ -37,17 +40,7 @@ export class SmuxDuplex {
 
 }
 
-export class SecretSmuxDuplex {
-  readonly #class = SecretSmuxDuplex
-
-  selfRead = 0
-  selfWrite = 0
-  selfIncrement = 0
-
-  peerConsumed = 0
-  peerWindow = 65_535
-
-  readonly subduplex = new HalfDuplex<Opaque, Writable>()
+export class SecretSmuxDuplex extends HalfDuplex<Opaque, Writable> {
 
   readonly reader: SecretSmuxReader
   readonly writer: SecretSmuxWriter
@@ -56,9 +49,18 @@ export class SecretSmuxDuplex {
 
   readonly stream: number
 
+  selfRead = 0
+  selfWrite = 0
+  selfIncrement = 0
+
+  peerConsumed = 0
+  peerWindow = 65_535
+
   constructor(
     readonly params: SmuxDuplexParams
   ) {
+    super()
+
     const { stream: streamID = 3 } = params
 
     this.stream = streamID
