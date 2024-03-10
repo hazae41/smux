@@ -47,7 +47,7 @@ export class SecretSmuxReader {
   constructor(
     readonly parent: SecretSmuxDuplex
   ) {
-    this.parent.input.events.on("message", async chunk => {
+    this.parent.subduplex.input.events.on("message", async chunk => {
       await this.#onMessage(chunk)
       return new None()
     })
@@ -106,23 +106,23 @@ export class SecretSmuxReader {
   }
 
   async #onPshSegment(segment: SmuxSegment<Opaque>) {
-    if (segment.stream !== this.parent.streamID)
+    if (segment.stream !== this.parent.stream)
       throw new InvalidSmuxStreamError(segment.stream)
 
     this.parent.selfRead += segment.fragment.bytes.length
     this.parent.selfIncrement += segment.fragment.bytes.length
 
-    await this.parent.input.enqueue(segment.fragment)
+    await this.parent.subduplex.input.enqueue(segment.fragment)
 
     if (this.parent.selfIncrement >= (this.parent.selfWindow / 2)) {
       const version = 2
       const command = SmuxSegment.commands.upd
-      const stream = this.parent.streamID
+      const stream = this.parent.stream
       const fragment = new SmuxUpdate(this.parent.selfRead, this.parent.selfWindow)
 
       const segment = SmuxSegment.newOrThrow({ version, command, stream, fragment })
 
-      await this.parent.output.enqueue(segment)
+      await this.parent.subduplex.output.enqueue(segment)
 
       this.parent.selfIncrement = 0
     }
@@ -136,11 +136,11 @@ export class SecretSmuxReader {
 
     const pong = SmuxSegment.empty({ version, command, stream, fragment })
 
-    await this.parent.output.enqueue(pong)
+    await this.parent.subduplex.output.enqueue(pong)
   }
 
   async #onUpdSegment(segment: SmuxSegment<Opaque>) {
-    if (segment.stream !== this.parent.streamID)
+    if (segment.stream !== this.parent.stream)
       throw new InvalidSmuxStreamError(segment.stream)
 
     const update = segment.fragment.readIntoOrThrow(SmuxUpdate)
@@ -150,10 +150,10 @@ export class SecretSmuxReader {
   }
 
   async #onFinSegment(segment: SmuxSegment<Opaque>) {
-    if (segment.stream !== this.parent.streamID)
+    if (segment.stream !== this.parent.stream)
       throw new InvalidSmuxStreamError(segment.stream)
 
-    await this.parent.output.close()
+    await this.parent.subduplex.output.close()
   }
 
 }

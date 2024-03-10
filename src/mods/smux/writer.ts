@@ -20,12 +20,12 @@ export class SecretSmuxWriter {
   constructor(
     readonly parent: SecretSmuxDuplex
   ) {
-    this.parent.output.events.on("open", async () => {
+    this.parent.subduplex.output.events.on("open", async () => {
       await this.#onStart()
       return new None()
     })
 
-    this.parent.output.events.on("message", async chunk => {
+    this.parent.subduplex.output.events.on("message", async chunk => {
       await this.#onMessage(chunk)
       return new None()
     })
@@ -39,23 +39,23 @@ export class SecretSmuxWriter {
   async #sendSynOrThrow() {
     const version = 2
     const command = SmuxSegment.commands.syn
-    const stream = this.parent.streamID
+    const stream = this.parent.stream
     const fragment = new Empty()
 
     const segment = SmuxSegment.empty({ version, command, stream, fragment })
 
-    await this.parent.output.enqueue(segment)
+    await this.parent.subduplex.output.enqueue(segment)
   }
 
   async #sendUpdOrThrow() {
     const version = 2
     const command = SmuxSegment.commands.upd
-    const stream = this.parent.streamID
+    const stream = this.parent.stream
     const fragment = new SmuxUpdate(0, this.parent.selfWindow)
 
     const segment = SmuxSegment.newOrThrow({ version, command, stream, fragment })
 
-    await this.parent.output.enqueue(segment)
+    await this.parent.subduplex.output.enqueue(segment)
   }
 
   async #onMessage(fragment: Writable) {
@@ -66,11 +66,11 @@ export class SecretSmuxWriter {
 
     const version = 2
     const command = SmuxSegment.commands.psh
-    const stream = this.parent.streamID
+    const stream = this.parent.stream
 
     const segment = SmuxSegment.newOrThrow({ version, command, stream, fragment })
 
-    await this.parent.output.enqueue(segment)
+    await this.parent.subduplex.output.enqueue(segment)
 
     this.parent.selfWrite += segment.fragmentSize
   }
