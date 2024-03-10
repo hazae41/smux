@@ -2,8 +2,6 @@ import { Opaque, Writable } from "@hazae41/binary"
 import { Bytes } from "@hazae41/bytes"
 import { HalfDuplex } from "@hazae41/cascade"
 import { Cursor } from "@hazae41/cursor"
-import { None } from "@hazae41/option"
-import { CloseEvents, ErrorEvents, SuperEventTarget } from "@hazae41/plume"
 import { SecretSmuxReader } from "./reader.js"
 import { SecretSmuxWriter } from "./writer.js"
 
@@ -22,7 +20,7 @@ export class SmuxDuplex {
   }
 
   get events() {
-    return this.#secret.events
+    return this.#secret.subduplex.events
   }
 
   get inner() {
@@ -51,8 +49,6 @@ export class SecretSmuxDuplex {
 
   readonly subduplex = new HalfDuplex<Opaque, Writable>()
 
-  readonly events = new SuperEventTarget<CloseEvents & ErrorEvents>()
-
   readonly reader: SecretSmuxReader
   readonly writer: SecretSmuxWriter
 
@@ -69,16 +65,6 @@ export class SecretSmuxDuplex {
 
     this.reader = new SecretSmuxReader(this)
     this.writer = new SecretSmuxWriter(this)
-
-    this.subduplex.events.on("close", async () => {
-      await this.events.emit("close", [undefined])
-      return new None()
-    })
-
-    this.subduplex.events.on("error", async (reason) => {
-      await this.events.emit("error", [reason])
-      return new None()
-    })
   }
 
   get selfWindow() {
