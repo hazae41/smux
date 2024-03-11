@@ -1,6 +1,6 @@
 import { Opaque, Writable } from "@hazae41/binary"
 import { Bytes } from "@hazae41/bytes"
-import { CloseEvents, ErrorEvents, FullDuplex, HalfDuplexEvents } from "@hazae41/cascade"
+import { CloseEvents, ErrorEvents, FullDuplex } from "@hazae41/cascade"
 import { Cursor } from "@hazae41/cursor"
 import { SuperEventTarget } from "@hazae41/plume"
 import { SecretSmuxReader } from "./reader.js"
@@ -10,11 +10,15 @@ export interface SmuxDuplexParams {
   readonly stream?: number
 }
 
+export type SmuxDuplexEvents =
+  & CloseEvents
+  & ErrorEvents
+
 export class SmuxDuplex {
 
   readonly #secret: SecretSmuxDuplex
 
-  readonly events = new SuperEventTarget<HalfDuplexEvents>()
+  readonly events = new SuperEventTarget<SmuxDuplexEvents>()
 
   constructor(
     readonly params: SmuxDuplexParams = {}
