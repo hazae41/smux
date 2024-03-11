@@ -69,8 +69,7 @@ export type SecretSmuxDuplexEvents =
 
 export class SecretSmuxDuplex {
 
-  readonly smux = new FullDuplex<Opaque, Writable>()
-
+  readonly duplex = new FullDuplex<Opaque, Writable>()
   readonly events = new SuperEventTarget<SecretSmuxDuplexEvents>()
 
   readonly reader: SecretSmuxReader
@@ -90,8 +89,8 @@ export class SecretSmuxDuplex {
   constructor(
     readonly params: SmuxDuplexParams = {}
   ) {
-    this.smux.events.on("close", () => this.events.emit("close"))
-    this.smux.events.on("error", e => this.events.emit("error", e))
+    this.duplex.events.on("close", () => this.events.emit("close"))
+    this.duplex.events.on("error", e => this.events.emit("error", e))
 
     const { stream: streamID = 3 } = params
 
@@ -114,35 +113,35 @@ export class SecretSmuxDuplex {
   }
 
   get inner() {
-    return this.smux.inner
+    return this.duplex.inner
   }
 
   get outer() {
-    return this.smux.outer
+    return this.duplex.outer
   }
 
   get input() {
-    return this.smux.input
+    return this.duplex.input
   }
 
   get output() {
-    return this.smux.output
+    return this.duplex.output
   }
 
   get closing() {
-    return this.smux.closing
+    return this.duplex.closing
   }
 
   get closed() {
-    return this.smux.closed
+    return this.duplex.closed
   }
 
   async error(reason?: unknown) {
-    await this.smux.error(reason)
+    await this.duplex.error(reason)
   }
 
   async close() {
-    await this.smux.close()
+    await this.duplex.close()
   }
 
 }
