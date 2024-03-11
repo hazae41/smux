@@ -25,6 +25,14 @@ export class SmuxDuplex {
     this.#secret.events.on("error", e => this.events.emit("error", e))
   }
 
+  [Symbol.dispose]() {
+    this.close().catch(console.error)
+  }
+
+  async [Symbol.asyncDispose]() {
+    await this.close()
+  }
+
   get stream() {
     return this.#secret.stream
   }
@@ -35,6 +43,10 @@ export class SmuxDuplex {
 
   get outer() {
     return this.#secret.outer
+  }
+
+  get closing() {
+    return this.#secret.closing
   }
 
   get closed() {
@@ -51,11 +63,15 @@ export class SmuxDuplex {
 
 }
 
+export type SecretSmuxDuplexEvents =
+  & CloseEvents
+  & ErrorEvents
+
 export class SecretSmuxDuplex {
 
   readonly smux = new FullDuplex<Opaque, Writable>()
 
-  readonly events = new SuperEventTarget<CloseEvents & ErrorEvents>()
+  readonly events = new SuperEventTarget<SecretSmuxDuplexEvents>()
 
   readonly reader: SecretSmuxReader
   readonly writer: SecretSmuxWriter
@@ -85,6 +101,14 @@ export class SecretSmuxDuplex {
     this.writer = new SecretSmuxWriter(this)
   }
 
+  [Symbol.dispose]() {
+    this.close().catch(console.error)
+  }
+
+  async [Symbol.asyncDispose]() {
+    await this.close()
+  }
+
   get selfWindow() {
     return this.buffer.bytes.length
   }
@@ -103,6 +127,10 @@ export class SecretSmuxDuplex {
 
   get output() {
     return this.smux.output
+  }
+
+  get closing() {
+    return this.smux.closing
   }
 
   get closed() {
