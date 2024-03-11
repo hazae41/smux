@@ -1,5 +1,4 @@
 import { Empty, Writable } from "@hazae41/binary";
-import { None } from "@hazae41/option";
 import { SmuxSegment, SmuxUpdate } from "./segment.js";
 import { SecretSmuxDuplex } from "./stream.js";
 
@@ -19,19 +18,9 @@ export class SecretSmuxWriter {
 
   constructor(
     readonly parent: SecretSmuxDuplex
-  ) {
-    this.parent.output.events.on("open", async () => {
-      await this.#onStart()
-      return new None()
-    })
+  ) { }
 
-    this.parent.output.events.on("message", async chunk => {
-      await this.#onMessage(chunk)
-      return new None()
-    })
-  }
-
-  async #onStart() {
+  async onOpen() {
     await this.#sendSynOrThrow()
     await this.#sendUpdOrThrow()
   }
@@ -44,7 +33,7 @@ export class SecretSmuxWriter {
 
     const segment = SmuxSegment.empty({ version, command, stream, fragment })
 
-    await this.parent.output.enqueue(segment)
+    this.parent.output.enqueue(segment)
   }
 
   async #sendUpdOrThrow() {
@@ -55,10 +44,10 @@ export class SecretSmuxWriter {
 
     const segment = SmuxSegment.newOrThrow({ version, command, stream, fragment })
 
-    await this.parent.output.enqueue(segment)
+    this.parent.output.enqueue(segment)
   }
 
-  async #onMessage(fragment: Writable) {
+  async onMessage(fragment: Writable) {
     const inflight = this.parent.selfWrite - this.parent.peerConsumed
 
     if (inflight >= this.parent.peerWindow)
@@ -70,7 +59,7 @@ export class SecretSmuxWriter {
 
     const segment = SmuxSegment.newOrThrow({ version, command, stream, fragment })
 
-    await this.parent.output.enqueue(segment)
+    this.parent.output.enqueue(segment)
 
     this.parent.selfWrite += segment.fragmentSize
   }

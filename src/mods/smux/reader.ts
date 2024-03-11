@@ -1,6 +1,5 @@
 import { Empty, Opaque, Readable } from "@hazae41/binary";
 import { Cursor } from "@hazae41/cursor";
-import { None } from "@hazae41/option";
 import { SmuxSegment, SmuxUpdate } from "./segment.js";
 import { SecretSmuxDuplex } from "./stream.js";
 
@@ -46,16 +45,9 @@ export class SecretSmuxReader {
 
   constructor(
     readonly parent: SecretSmuxDuplex
-  ) {
-    this.parent.input.events.on("message", async chunk => {
-      await this.#onMessage(chunk)
-      return new None()
-    })
-  }
+  ) { }
 
-  async #onMessage(chunk: Opaque) {
-    // Console.debug("<-", chunk)
-
+  async onMessage(chunk: Opaque) {
     if (this.parent.buffer.offset)
       return await this.#onReadBuffered(chunk.bytes)
     else
@@ -112,7 +104,7 @@ export class SecretSmuxReader {
     this.parent.selfRead += segment.fragment.bytes.length
     this.parent.selfIncrement += segment.fragment.bytes.length
 
-    await this.parent.input.enqueue(segment.fragment)
+    this.parent.input.enqueue(segment.fragment)
 
     if (this.parent.selfIncrement >= (this.parent.selfWindow / 2)) {
       const version = 2
@@ -122,7 +114,7 @@ export class SecretSmuxReader {
 
       const segment = SmuxSegment.newOrThrow({ version, command, stream, fragment })
 
-      await this.parent.output.enqueue(segment)
+      this.parent.output.enqueue(segment)
 
       this.parent.selfIncrement = 0
     }
@@ -136,7 +128,7 @@ export class SecretSmuxReader {
 
     const pong = SmuxSegment.empty({ version, command, stream, fragment })
 
-    await this.parent.output.enqueue(pong)
+    this.parent.output.enqueue(pong)
   }
 
   async #onUpdSegment(segment: SmuxSegment<Opaque>) {
@@ -153,7 +145,7 @@ export class SecretSmuxReader {
     if (segment.stream !== this.parent.stream)
       throw new InvalidSmuxStreamError(segment.stream)
 
-    await this.parent.output.close()
+    this.parent.output.close()
   }
 
 }

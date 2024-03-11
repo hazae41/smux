@@ -1,40 +1,29 @@
 import { Opaque, Writable } from "@hazae41/binary"
 import { Bytes } from "@hazae41/bytes"
-import { CloseEvents, ErrorEvents, FullDuplex } from "@hazae41/cascade"
+import { FullDuplex } from "@hazae41/cascade"
 import { Cursor } from "@hazae41/cursor"
-import { SuperEventTarget } from "@hazae41/plume"
 import { SecretSmuxReader } from "./reader.js"
 import { SecretSmuxWriter } from "./writer.js"
 
 export interface SmuxDuplexParams {
   readonly stream?: number
-}
 
-export type SmuxDuplexEvents =
-  & CloseEvents
-  & ErrorEvents
+  close?(this: undefined): Promise<void>
+  error?(this: undefined, reason?: unknown): Promise<void>
+}
 
 export class SmuxDuplex {
 
   readonly #secret: SecretSmuxDuplex
 
-  readonly events = new SuperEventTarget<SmuxDuplexEvents>()
-
   constructor(
     readonly params: SmuxDuplexParams = {}
   ) {
     this.#secret = new SecretSmuxDuplex(params)
-
-    this.#secret.events.on("close", () => this.events.emit("close"))
-    this.#secret.events.on("error", e => this.events.emit("error", e))
   }
 
   [Symbol.dispose]() {
-    this.close().catch(console.error)
-  }
-
-  async [Symbol.asyncDispose]() {
-    await this.close()
+    this.close()
   }
 
   get stream() {
@@ -57,24 +46,19 @@ export class SmuxDuplex {
     return this.#secret.closed
   }
 
-  async error(reason?: unknown) {
-    await this.#secret.error(reason)
+  error(reason?: unknown) {
+    this.#secret.error(reason)
   }
 
-  async close() {
-    await this.#secret.close()
+  close() {
+    this.#secret.close()
   }
 
 }
 
-export type SecretSmuxDuplexEvents =
-  & CloseEvents
-  & ErrorEvents
-
 export class SecretSmuxDuplex {
 
-  readonly duplex = new FullDuplex<Opaque, Writable>()
-  readonly events = new SuperEventTarget<SecretSmuxDuplexEvents>()
+  readonly duplex: FullDuplex<Opaque, Writable>
 
   readonly reader: SecretSmuxReader
   readonly writer: SecretSmuxWriter
@@ -93,23 +77,28 @@ export class SecretSmuxDuplex {
   constructor(
     readonly params: SmuxDuplexParams = {}
   ) {
-    this.duplex.events.on("close", () => this.events.emit("close"))
-    this.duplex.events.on("error", e => this.events.emit("error", e))
-
     const { stream = 3 } = params
 
     this.stream = stream
 
     this.reader = new SecretSmuxReader(this)
     this.writer = new SecretSmuxWriter(this)
+
+    this.duplex = new FullDuplex<Opaque, Writable>({
+      input: {
+        message: m => this.reader.onMessage(m),
+      },
+      output: {
+        open: () => this.writer.onOpen(),
+        message: m => this.writer.onMessage(m),
+      },
+      close: () => this.#onDuplexClose(),
+      error: e => this.#onDuplexError(e),
+    })
   }
 
   [Symbol.dispose]() {
-    this.close().catch(console.error)
-  }
-
-  async [Symbol.asyncDispose]() {
-    await this.close()
+    this.close()
   }
 
   get selfWindow() {
@@ -140,12 +129,20 @@ export class SecretSmuxDuplex {
     return this.duplex.closed
   }
 
-  async error(reason?: unknown) {
-    await this.duplex.error(reason)
+  async #onDuplexClose() {
+    await this.params.close?.call(undefined)
   }
 
-  async close() {
-    await this.duplex.close()
+  async #onDuplexError(reason?: unknown) {
+    await this.params.error?.call(undefined, reason)
+  }
+
+  error(reason?: unknown) {
+    this.duplex.error(reason)
+  }
+
+  close() {
+    this.duplex.close()
   }
 
 }
