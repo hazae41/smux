@@ -92,9 +92,9 @@ export class SecretSmuxDuplex {
     this.duplex.events.on("close", () => this.events.emit("close"))
     this.duplex.events.on("error", e => this.events.emit("error", e))
 
-    const { stream: streamID = 3 } = params
+    const { stream = 3 } = params
 
-    this.stream = streamID
+    this.stream = stream
 
     this.reader = new SecretSmuxReader(this)
     this.writer = new SecretSmuxWriter(this)
