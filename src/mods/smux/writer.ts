@@ -20,7 +20,9 @@ export class SecretSmuxWriter {
     readonly parent: SecretSmuxDuplex
   ) { }
 
-  async onOpen() {
+  async onStart() {
+    await this.parent.resolveOnStart.promise
+
     await this.#sendSynOrThrow()
     await this.#sendUpdOrThrow()
   }
@@ -47,7 +49,7 @@ export class SecretSmuxWriter {
     this.parent.output.enqueue(segment)
   }
 
-  async onMessage(fragment: Writable) {
+  async onWrite(fragment: Writable) {
     const inflight = this.parent.selfWrite - this.parent.peerConsumed
 
     if (inflight >= this.parent.peerWindow)

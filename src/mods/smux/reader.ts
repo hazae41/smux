@@ -47,7 +47,7 @@ export class SecretSmuxReader {
     readonly parent: SecretSmuxDuplex
   ) { }
 
-  async onMessage(chunk: Opaque) {
+  async onWrite(chunk: Opaque) {
     if (this.parent.buffer.offset)
       return await this.#onReadBuffered(chunk.bytes)
     else

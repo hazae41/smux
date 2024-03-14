@@ -2,6 +2,7 @@ import { Opaque, Writable } from "@hazae41/binary"
 import { Bytes } from "@hazae41/bytes"
 import { FullDuplex } from "@hazae41/cascade"
 import { Cursor } from "@hazae41/cursor"
+import { Future } from "@hazae41/future"
 import { SecretSmuxReader } from "./reader.js"
 import { SecretSmuxWriter } from "./writer.js"
 
@@ -74,6 +75,8 @@ export class SecretSmuxDuplex {
   peerConsumed = 0
   peerWindow = 65_535
 
+  readonly resolveOnStart = new Future<void>()
+
   constructor(
     readonly params: SmuxDuplexParams = {}
   ) {
@@ -86,15 +89,17 @@ export class SecretSmuxDuplex {
 
     this.duplex = new FullDuplex<Opaque, Writable>({
       input: {
-        message: m => this.reader.onMessage(m),
+        write: m => this.reader.onWrite(m),
       },
       output: {
-        open: () => this.writer.onOpen(),
-        message: m => this.writer.onMessage(m),
+        start: () => this.writer.onStart(),
+        write: m => this.writer.onWrite(m),
       },
       close: () => this.#onDuplexClose(),
       error: e => this.#onDuplexError(e),
     })
+
+    this.resolveOnStart.resolve()
   }
 
   [Symbol.dispose]() {
