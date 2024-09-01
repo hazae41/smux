@@ -15,8 +15,8 @@ test("kcp segment", async ({ test }) => {
   const fragment = new Opaque(Bytes.random(130))
 
   const segment = SmuxSegment.newOrThrow({ version, command, stream, fragment })
-  const bytes = Writable.tryWriteToBytes(segment).unwrap()
-  const frame2 = Readable.tryReadFromBytes(SmuxSegment, bytes).unwrap()
+  const bytes = Writable.writeToBytesOrThrow(segment)
+  const frame2 = Readable.readFromBytesOrThrow(SmuxSegment, bytes)
 
   assert(Bytes.equals2(segment.fragment.bytes, frame2.fragment.bytes))
 })
