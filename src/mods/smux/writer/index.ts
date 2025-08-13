@@ -1,6 +1,6 @@
 import { Empty, Writable } from "@hazae41/binary";
-import { SmuxSegment, SmuxUpdate } from "./segment.js";
-import { SecretSmuxDuplex } from "./stream.js";
+import { SmuxSegment, SmuxUpdate } from "../segment/index.js";
+import { SecretSmuxDuplex } from "../stream/index.js";
 
 export type SmuxWriteError =
   | PeerWindowOverflow

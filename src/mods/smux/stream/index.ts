@@ -1,10 +1,9 @@
 import { Opaque, Writable } from "@hazae41/binary"
-import { Bytes } from "@hazae41/bytes"
 import { FullDuplex } from "@hazae41/cascade"
 import { Cursor } from "@hazae41/cursor"
 import { Future } from "@hazae41/future"
-import { SecretSmuxReader } from "./reader.js"
-import { SecretSmuxWriter } from "./writer.js"
+import { SecretSmuxReader } from "../reader/index.js"
+import { SecretSmuxWriter } from "../writer/index.js"
 
 export interface SmuxDuplexParams {
   readonly stream?: number
@@ -64,7 +63,7 @@ export class SecretSmuxDuplex {
   readonly reader: SecretSmuxReader
   readonly writer: SecretSmuxWriter
 
-  readonly buffer = new Cursor(Bytes.alloc(65_535))
+  readonly buffer = new Cursor(new Uint8Array(65_535))
 
   readonly stream: number
 

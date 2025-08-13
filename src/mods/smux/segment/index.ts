@@ -12,12 +12,12 @@ export class SmuxUpdate {
     return 4 + 4
   }
 
-  writeOrThrow(cursor: Cursor) {
+  writeOrThrow(cursor: Cursor<ArrayBuffer>) {
     cursor.writeUint32OrThrow(this.consumed, true)
     cursor.writeUint32OrThrow(this.window, true)
   }
 
-  static readOrThrow(cursor: Cursor) {
+  static readOrThrow(cursor: Cursor<ArrayBuffer>) {
     const consumed = cursor.readUint32OrThrow(true)
     const window = cursor.readUint32OrThrow(true)
 
@@ -75,7 +75,7 @@ export class SmuxSegment<Fragment extends Writable> {
       + this.fragmentSize
   }
 
-  writeOrThrow(cursor: Cursor) {
+  writeOrThrow(cursor: Cursor<ArrayBuffer>) {
     cursor.writeUint8OrThrow(this.version)
     cursor.writeUint8OrThrow(this.command)
     cursor.writeUint16OrThrow(this.fragmentSize, true)
@@ -84,12 +84,12 @@ export class SmuxSegment<Fragment extends Writable> {
     this.fragment.writeOrThrow(cursor)
   }
 
-  static readOrThrow(cursor: Cursor) {
+  static readOrThrow(cursor: Cursor<ArrayBuffer>) {
     const version = cursor.readUint8OrThrow()
     const command = cursor.readUint8OrThrow()
     const length = cursor.readUint16OrThrow(true)
     const stream = cursor.readUint32OrThrow(true)
-    const bytes = cursor.readAndCopyOrThrow(length)
+    const bytes = new Uint8Array(cursor.readOrThrow(length))
     const fragment = new Opaque(bytes)
 
     return SmuxSegment.newOrThrow({ version, command, stream, fragment })

@@ -1,7 +1,7 @@
 import { Empty, Opaque, Readable } from "@hazae41/binary";
 import { Cursor } from "@hazae41/cursor";
-import { SmuxSegment, SmuxUpdate } from "./segment.js";
-import { SecretSmuxDuplex } from "./stream.js";
+import { SmuxSegment, SmuxUpdate } from "../segment/index.js";
+import { SecretSmuxDuplex } from "../stream/index.js";
 
 export type SmuxReadError =
   | UnknownSmuxCommandError
@@ -54,7 +54,7 @@ export class SecretSmuxReader {
       return await this.#onReadDirect(chunk.bytes)
   }
 
-  async #onReadBuffered(chunk: Uint8Array) {
+  async #onReadBuffered(chunk: Uint8Array<ArrayBuffer>) {
     this.parent.buffer.writeOrThrow(chunk)
     const full = new Uint8Array(this.parent.buffer.before)
 
@@ -62,7 +62,7 @@ export class SecretSmuxReader {
     return await this.#onReadDirect(full)
   }
 
-  async #onReadDirect(chunk: Uint8Array) {
+  async #onReadDirect(chunk: Uint8Array<ArrayBuffer>) {
     const cursor = new Cursor(chunk)
 
     while (cursor.remaining) {
