@@ -1,4 +1,4 @@
-import { Buffers } from "libs/buffers/index.js"
+import { Buffers } from "libs/buffers/index.js";
 
 export namespace Bytes {
 

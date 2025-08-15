@@ -54,7 +54,7 @@ export class SecretSmuxReader {
       return await this.#onReadDirect(chunk.bytes)
   }
 
-  async #onReadBuffered(chunk: Uint8Array<ArrayBuffer>) {
+  async #onReadBuffered(chunk: Uint8Array) {
     this.parent.buffer.writeOrThrow(chunk)
     const full = new Uint8Array(this.parent.buffer.before)
 
@@ -62,7 +62,7 @@ export class SecretSmuxReader {
     return await this.#onReadDirect(full)
   }
 
-  async #onReadDirect(chunk: Uint8Array<ArrayBuffer>) {
+  async #onReadDirect(chunk: Uint8Array) {
     const cursor = new Cursor(chunk)
 
     while (cursor.remaining) {
